@@ -1,0 +1,19 @@
+{
+  "name": "villeray",
+  "version": "1.0.0",
+  "description": "",
+  "main": "villeray.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/villeray/framework.git"
+  },
+  "author": "Avery Nortonsmith",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/villeray/framework/issues"
+  },
+  "homepage": "https://github.com/villeray/framework#readme"
+}
