@@ -4,10 +4,10 @@
   "description": "A simple javascript framework for uncomplicated web-apps",
   "main": "villeray.js",
   "scripts": {
-    "fmt": "npx prettier villeray.js --write",
-    "minify": "npx terser villeray.js -c -m -o villeray.min.js",
-    "lint": "npx eslint villeray.js",
-    "build": "npm run fmt && npm run lint && npm run minify"
+    "fmt": "prettier villeray.js --write",
+    "minify": "terser villeray.js -c -m -o villeray.min.js",
+    "lint": "eslint villeray.js",
+    "build": "run fmt && npm run lint && npm run minify"
   },
   "repository": {
     "type": "git",
@@ -26,15 +26,14 @@
   },
   "eslintConfig": {
     "env": {
-        "browser": true,
-        "es2020": true
+      "browser": true,
+      "es2020": true
     },
     "extends": "eslint:recommended",
     "parserOptions": {
-        "ecmaVersion": 2021,
-        "sourceType": "module"
+      "ecmaVersion": 2021,
+      "sourceType": "module"
     },
-    "rules": {
-    }
+    "rules": {}
   }
 }
