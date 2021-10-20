@@ -1,10 +1,13 @@
 {
   "name": "villeray",
   "version": "1.0.0",
-  "description": "",
+  "description": "A simple javascript framework for uncomplicated web-apps",
   "main": "villeray.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "fmt": "npx prettier villeray.js --write",
+    "minify": "npx terser villeray.js -c -m -o villeray.min.js",
+    "lint": "npx eslint villeray.js",
+    "build": "npm run fmt && npm run lint && npm run minify"
   },
   "repository": {
     "type": "git",
@@ -15,5 +18,23 @@
   "bugs": {
     "url": "https://github.com/villeray/framework/issues"
   },
-  "homepage": "https://github.com/villeray/framework#readme"
+  "homepage": "https://github.com/villeray/framework#readme",
+  "devDependencies": {
+    "eslint": "^8.0.1",
+    "prettier": "^2.4.1",
+    "terser": "^5.9.0"
+  },
+  "eslintConfig": {
+    "env": {
+        "browser": true,
+        "es2020": true
+    },
+    "extends": "eslint:recommended",
+    "parserOptions": {
+        "ecmaVersion": 11,
+        "sourceType": "module"
+    },
+    "rules": {
+    }
+  }
 }
