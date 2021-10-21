@@ -1,6 +1,7 @@
-const mounts = [];
+const mounts = []; // [{ elem, app }, ...]
 
-export async function load(selector, app) {
+// mount an app that replaces the element matching selector
+export async function mount(selector, app) {
   const elem = document.body.querySelector(selector);
 
   if (elem === null) {
@@ -11,17 +12,25 @@ export async function load(selector, app) {
   }
 }
 
+// re-render all mounted apps
+// triggered automatically by element event handlers and search param changes
+// need to call manually to render changes from 'setInterval', 'fetch', etc
 export async function refresh() {
+  // used maintain focus after render when the currently focused element has an id
   const activeID = document.activeElement?.id ?? "";
 
   for (const mount of mounts) {
     const vnode = await transform(mount.app());
+    // could return the same element, or a new one
     mount.elem = await render(mount.elem, vnode);
   }
 
   if (activeID !== "") {
     const active = document.getElementById(activeID);
     if (active === null) {
+      // there was no previously focused element
+      // or there was but it didn't have an id
+      // or it was removed from the page / lost its id
       return;
     }
 
@@ -38,11 +47,17 @@ class VNode {
     Object.assign(this, { tag, attrs, children });
 
     if (tag === "a") {
+      // combine give href and params attrs to get full url
       const href = buildURL(attrs.href ?? "", attrs.params ?? {});
       this.attrs = { ...attrs, href };
 
+      // links that change search params only use window.history.pushState
+      // to avoid a full page re-render
       if (attrs.href === undefined) {
-        this.attrs.onclick = (e) => {
+        // don't overwrite existing click handler if there is one
+        this.attrs.onclick ??= (e) => {
+          // don't hijack ctrl-click and such for links
+          // ctrl-click etc will still work since href is set
           if (!(e.ctrlKey || e.shiftKey || e.metaKey)) {
             setParams(attrs.params ?? {});
             e.preventDefault();
@@ -53,7 +68,9 @@ class VNode {
   }
 }
 
+// represents an element with the given tag, attributes, and children
 export function h(tag, attrs, ...children) {
+  // errors are logged to the console and rendered on the page
   if (typeof tag !== "string") {
     const message = "error: 'tag' must be a string";
     console.log(new Error(message), tag);
@@ -68,6 +85,7 @@ export function h(tag, attrs, ...children) {
 }
 
 async function transform(node) {
+  // returns value is either a string or a VNode object
   switch (node?.constructor) {
     case VNode:
       return node;
@@ -75,31 +93,46 @@ async function transform(node) {
     case Number:
       return String(node);
     case Boolean:
+    case undefined:
+      // booleans, undefined, and null are ignored (rendered as empty text nodes)
+      // to facilitate conditional rendering
+      // https://reactjs.org/docs/jsx-in-depth.html#booleans-null-and-undefined-are-ignored
       return "";
     case Promise:
+      // resolve promises
       return transform(await node);
     default:
+      // dump objects in text form, for debugging
       return h("pre", {}, JSON.stringify(node, null, 2));
   }
 }
 
+// update elem to match vnode if it has a compatible type
+// otherwise replace it with a new elem
+// vnode is either a string of a VNode object
 async function render(elem, vnode) {
   if (typeof vnode === "string") {
     if (elem.nodeType === Node.TEXT_NODE) {
+      // update existing text elem
       if (elem.textContent !== vnode) {
         elem.textContent = vnode;
       }
       return elem;
     }
 
+    // replace elem with new text elem
     return replace(elem, await createElem(vnode));
   }
 
+  // elem.tagName is always uppercase
+  // vnode.tag is case insensitive
   if (vnode.tag.toUpperCase() === elem.tagName) {
+    // update existing elem
     await setupElem(elem, vnode);
     return elem;
   }
 
+  // replace elem with new elem
   return replace(elem, await createElem(vnode));
 }
 
@@ -109,46 +142,45 @@ function replace(elem, newElem) {
 }
 
 async function setAttributes(elem, attrs) {
-  const oldAttrs = elem.vnode?.attrs ?? {};
-
   for (const [attr, value] of Object.entries(attrs)) {
-    if (attr.startsWith("on") && oldAttrs[attr] !== value) {
-      elem[attr] = async (event) => {
-        await value(event);
+    if (attr.startsWith("on") && elem[attr] !== value) {
+      // wrapper which calls given event handler and refreshes
+      elem[attr] = async (...args) => {
+        await value(...args);
         await refresh();
       };
     } else if (attr === "style" && typeof value === "object") {
-      const oldStyles = oldAttrs.style ?? {};
+      // makes it possible to specify element styles as an object
+      // instead of a string
+
+      // element might not have styles currently
+      const oldStyles = elem.style ?? {};
 
       for (const [property, styleValue] of Object.entries(value)) {
+        // only update if value has changed
         if (oldStyles[property] !== styleValue) {
           elem.style[property] = styleValue;
         }
       }
 
+      // remove old styles
       for (const oldStyle of Object.keys(oldStyles)) {
         if (!Object.hasOwnProperty.call(value, oldStyle)) {
           delete elem.style[oldStyle];
         }
       }
-    } else {
-      switch (attr) {
-        case "value":
-        case "selected":
-        case "checked":
-          if (elem[attr] !== value) {
-            elem[attr] = value;
-          }
-          break;
-        default:
-          if (oldAttrs[attr] !== value) {
-            elem[attr] = value;
-          }
-      }
+    } else if (elem[attr] !== value) {
+      // update will occur in cases where value gets converted by the element
+      // for example, setting the value of an input element to a number converts
+      // the value to a string
+      // leads to unnecessary updates
+      elem[attr] = value;
     }
   }
 
-  for (const oldAttr of Object.keys(oldAttrs)) {
+  // remove attrs set by old vnode that are no longer used
+  // Object.keys(elem) should only return attrs that were previously set
+  for (const oldAttr of Object.keys(elem)) {
     if (!Object.hasOwnProperty.call(attrs, oldAttr)) {
       delete elem[oldAttr];
     }
@@ -163,27 +195,34 @@ async function setChildren(elem, children) {
   let numVNodes = transformed.length;
   let numElems = elem.childNodes.length;
 
+  // doesn't do anything fancy with keys, just replaces current children in-order
+  // focus gets restored later using element id
   for (let index = 0; index < numVNodes; index++) {
     if (index < numElems) {
+      // render to existing child elem
       await render(elem.childNodes[index], transformed[index]);
     } else {
+      // make new child elem
       elem.append(await createElem(transformed[index]));
       numElems++;
     }
   }
 
+  // make unused child elems
   while (numElems > numVNodes) {
     const lastChild = elem.childNodes[--numElems];
     elem.removeChild(lastChild);
   }
 }
 
+// vnode is a VNode object, setupElem is not called for string elements
+// since they have no attrs or children
 async function setupElem(elem, vnode) {
   await setAttributes(elem, vnode.attrs);
   await setChildren(elem, vnode.children);
-  elem.vnode = vnode;
 }
 
+// tracks special case for making SVG descendant elements
 let inSVG = false;
 
 async function createElem(vnode) {
@@ -192,7 +231,7 @@ async function createElem(vnode) {
   }
 
   const wasInSVG = inSVG;
-  inSVG = inSVG || vnode.tag.toUpperCase() === "SVG";
+  inSVG ||= vnode.tag.toUpperCase() === "SVG";
 
   const elem = inSVG
     ? document.createElementNS("http://www.w3.org/2000/svg", vnode.tag)
@@ -204,12 +243,15 @@ async function createElem(vnode) {
   return elem;
 }
 
+// get current search params as an object
 export function getParams() {
   return Object.fromEntries(
     new URL(window.location.href).searchParams.entries()
   );
 }
 
+// combine path (relative to current location or absolute)
+// with new search params to get new url
 function buildURL(path, params) {
   const url = new URL(path, window.location.href);
   url.search = "";
@@ -221,6 +263,8 @@ function buildURL(path, params) {
   return url;
 }
 
+// set new search params using window.history.pushState and refresh
+// use addHistory = false for window.history.replaceState
 export async function setParams(params, addHistory = true) {
   const url = buildURL("", params);
 
@@ -233,9 +277,9 @@ export async function setParams(params, addHistory = true) {
   await refresh();
 }
 
-let oldURL = "";
-
 function startWatchURL() {
+  let oldURL = "";
+
   // polls for changes to window url
   // calls redraw on back navigation
   async function doWatch() {
@@ -247,7 +291,8 @@ function startWatchURL() {
     requestAnimationFrame(doWatch);
   }
 
-  doWatch(); // no await needed
+  // no await needed
+  doWatch();
 }
 
 startWatchURL();
