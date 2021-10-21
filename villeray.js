@@ -30,7 +30,7 @@ export async function refresh() {
 
     restoreActive(mount.elem, activeId);
 
-    await Promise.all(callbacks.map(cb => cb()));
+    await Promise.all(callbacks.map((cb) => cb()));
     callbacks = [];
   }
 }
@@ -132,7 +132,7 @@ function replacer(key, val) {
     return `[function ${val.name}]`;
   }
 
-  return val
+  return val;
 }
 
 async function transform(node) {
