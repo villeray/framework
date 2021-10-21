@@ -142,8 +142,14 @@ function replace(elem, newElem) {
 }
 
 async function setAttributes(elem, attrs) {
+  // elem won't have oldAttrs on first render
+  const oldAttrs = elem.dataset.attrs ?? {};
+
+  // store vnode attrs for future setAttributes diffs
+  elem.dataset.attrs = attrs;
+
   for (const [attr, value] of Object.entries(attrs)) {
-    if (attr.startsWith("on") && elem[attr] !== value) {
+    if (attr.startsWith("on") && oldAttrs[attr] !== value) {
       // wrapper which calls given event handler and refreshes
       elem[attr] = async (...args) => {
         await value(...args);
@@ -153,27 +159,25 @@ async function setAttributes(elem, attrs) {
       // makes it possible to specify element styles as an object
       // instead of a string
 
-      // element might not have styles currently
-      const oldStyles = elem.style ?? {};
+      // styles may not have been set previously
+      const oldStyles = oldAttrs.style ?? {};
 
       for (const [property, styleValue] of Object.entries(value)) {
-        // only update if value has changed
         if (oldStyles[property] !== styleValue) {
           elem.style[property] = styleValue;
         }
       }
 
       // remove old styles
-      for (const oldStyle of Object.keys(oldStyles)) {
-        if (!Object.hasOwnProperty.call(value, oldStyle)) {
-          delete elem.style[oldStyle];
+      for (const property of Object.values(oldStyles)) {
+        if (!Object.hasOwnProperty.call(value, property)) {
+          elem.style.removeProperty(property);
         }
       }
     } else if (elem[attr] !== value) {
-      // update will occur in cases where value gets converted by the element
-      // for example, setting the value of an input element to a number converts
-      // the value to a string
-      // leads to unnecessary updates
+      // check against elem property directly, not oldAttrs, in case
+      // the property value got converted to some other type
+      // (for example, a number converted to a string 'value' property)
       elem[attr] = value;
     }
   }
