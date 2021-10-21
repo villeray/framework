@@ -151,10 +151,10 @@ function replace(elem, newElem) {
 
 async function setAttributes(elem, attrs) {
   // elem won't have oldAttrs on first render
-  const oldAttrs = elem.dataset.attrs ?? {};
+  const oldAttrs = elem.vnodeAttrs ?? {};
 
   // store vnode attrs for future setAttributes diffs
-  elem.dataset.attrs = attrs;
+  elem.vnodeAttrs = attrs;
 
   for (const [attr, value] of Object.entries(attrs)) {
     if (attr.startsWith("on") && oldAttrs[attr] !== value) {
@@ -192,7 +192,7 @@ async function setAttributes(elem, attrs) {
 
   // remove attrs set by old vnode that are no longer used
   // Object.keys(elem) should only return attrs that were previously set
-  for (const oldAttr of Object.keys(elem)) {
+  for (const oldAttr of Object.keys(oldAttrs)) {
     if (!Object.hasOwnProperty.call(attrs, oldAttr)) {
       delete elem[oldAttr];
     }
