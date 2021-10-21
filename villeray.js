@@ -13,6 +13,9 @@ export async function mount(selector, app) {
   }
 }
 
+// functions to be run after refresh
+let callbacks = [];
+
 // re-render all mounted apps
 // triggered automatically by element event handlers and search param changes
 // need to call manually to render changes from 'setInterval', 'fetch', etc
@@ -26,6 +29,9 @@ export async function refresh() {
     mount.elem = await render(mount.elem, vnode);
 
     restoreActive(mount.elem, activeId);
+
+    await Promise.all(callbacks.map(cb => cb()));
+    callbacks = [];
   }
 }
 
@@ -78,6 +84,30 @@ class VNode {
         };
       }
     }
+  }
+}
+
+function queueCreate(elem) {
+  // text elements don't have vnodeAttrs
+  if (elem.vnodeAttrs?.aftercreate) {
+    // callback handler might return promise, gets awaited when evaluated
+    callbacks.push(() => elem.vnodeAttrs.aftercreate(elem));
+  }
+}
+
+function queueRemove(elem) {
+  // text elements don't have vnodeAttrs
+  if (elem.vnodeAttrs?.afterremove) {
+    // callback handler might return promise, gets awaited when evaluated
+    callbacks.push(() => elem.vnodeAttrs.afterremove(elem));
+  }
+}
+
+function queueUpdate(elem) {
+  // text elements don't have vnodeAttrs
+  if (elem.vnodeAttrs?.afterupdate) {
+    // callback handler might return promise, gets awaited when evaluated
+    callbacks.push(() => elem.vnodeAttrs.afterupdate(elem));
   }
 }
 
@@ -150,6 +180,7 @@ async function render(elem, vnode) {
   if (vnode.tag.toUpperCase() === elem.tagName) {
     // update existing elem
     await setupElem(elem, vnode);
+    queueUpdate(elem);
     return elem;
   }
 
@@ -159,6 +190,7 @@ async function render(elem, vnode) {
 
 function replace(elem, newElem) {
   elem.replaceWith(newElem);
+  queueRemove(elem);
   return newElem;
 }
 
@@ -171,6 +203,14 @@ async function setAttributes(elem, attrs) {
 
   for (const [attr, value] of Object.entries(attrs)) {
     if (attr.startsWith("on") && oldAttrs[attr] !== value) {
+      // don't transform lifecycle hooks
+      switch (attr) {
+        case "aftercreate":
+        case "afterupdate":
+        case "afterremove":
+          continue;
+      }
+
       // wrapper which calls given event handler and refreshes
       elem[attr] = async (...args) => {
         await value(...args);
@@ -237,6 +277,7 @@ async function setChildren(elem, children) {
   while (numElems > numVNodes) {
     const lastChild = elem.childNodes[--numElems];
     elem.removeChild(lastChild);
+    queueRemove(elem);
   }
 }
 
@@ -263,6 +304,7 @@ async function createElem(vnode) {
     : document.createElement(vnode.tag);
 
   await setupElem(elem, vnode);
+  queueCreate(elem);
 
   inSVG = wasInSVG;
   return elem;
