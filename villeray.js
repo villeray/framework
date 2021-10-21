@@ -84,6 +84,14 @@ export function h(tag, attrs, ...children) {
   return new VNode(tag, attrs, children);
 }
 
+function replacer(key, val) {
+  if (val instanceof Function) {
+    return `[function ${val.name}]`;
+  }
+
+  return val
+}
+
 async function transform(node) {
   // returns value is either a string or a VNode object
   switch (node?.constructor) {
@@ -103,7 +111,7 @@ async function transform(node) {
       return transform(await node);
     default:
       // dump objects in text form, for debugging
-      return h("pre", {}, JSON.stringify(node, null, 2));
+      return h("pre", {}, JSON.stringify(node, replacer, 2));
   }
 }
 
