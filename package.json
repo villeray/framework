@@ -13,6 +13,7 @@
     "type": "git",
     "url": "git+https://github.com/villeray/framework.git"
   },
+  "keywords": ["framework", "declarative", "webapps"],
   "author": "Avery Nortonsmith",
   "license": "ISC",
   "bugs": {
