@@ -1,4 +1,5 @@
-const mounts = []; // [{ elem, app }, ...]
+// [{ elem, app }, ...]
+const mounts = [];
 
 // mount an app that replaces the element matching selector
 export async function mount(selector, app) {
@@ -16,18 +17,24 @@ export async function mount(selector, app) {
 // triggered automatically by element event handlers and search param changes
 // need to call manually to render changes from 'setInterval', 'fetch', etc
 export async function refresh() {
-  // used maintain focus after render when the currently focused element has an id
-  const activeID = document.activeElement?.id ?? "";
-
   for (const mount of mounts) {
+    // used maintain focus after render when the currently focused element has an id
+    const activeId = mount.elem.activeElement?.id ?? "";
+
     const vnode = await transform(mount.app());
     // could return the same element, or a new one
     mount.elem = await render(mount.elem, vnode);
-  }
 
-  if (activeID !== "") {
-    const active = document.getElementById(activeID);
-    if (active === null) {
+    restoreActive(mount.elem, activeId);
+  }
+}
+
+function restoreActive(elem, id) {
+  if (id !== "") {
+    const newActive = elem.getElementById(id);
+    const oldActive = elem.activeElement ?? document.body;
+
+    if (newActive === null) {
       // there was no previously focused element
       // or there was but it didn't have an id
       // or it was removed from the page / lost its id
@@ -35,10 +42,16 @@ export async function refresh() {
     }
 
     // avoid re-running 'onfocus' for element that was previously focused
-    const onFocus = active.onfocus;
-    delete active.onfocus;
-    active.focus();
-    active.onfocus = onFocus;
+    // or 'onblur' for element that was temporarily focused
+    const onFocus = newActive.onfocus;
+    const onBlur = oldActive.onblur;
+
+    delete newActive.onfocus;
+    delete oldActive.onfocus;
+
+    newActive.focus();
+    newActive.onfocus = onFocus;
+    oldActive.onblur = onBlur;
   }
 }
 
