@@ -63,7 +63,9 @@ function restoreActive(elem, id) {
 
 class VNode {
   constructor(tag, attrs, children) {
-    Object.assign(this, { tag, attrs, children });
+    this.tag = tag;
+    this.attrs = attrs;
+    this.children = children;
 
     if (tag === "a") {
       // combine give href and params attrs to get full url
