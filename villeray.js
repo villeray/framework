@@ -142,7 +142,7 @@ async function transform(node) {
       return node;
     case String:
     case Number:
-      return String(node);
+      return node.toString();
     case Boolean:
     case undefined:
       // booleans, undefined, and null are ignored (rendered as empty text nodes)
