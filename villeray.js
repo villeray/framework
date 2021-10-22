@@ -152,9 +152,16 @@ async function transform(node) {
     case Promise:
       // resolve promises
       return transform(await node);
-    default:
+    default: {
+      // use custom toString method if one is defined
+      const nodeStr =
+        node.toString !== Object.prototype.toString
+          ? node.toString()
+          : JSON.stringify(node, replacer, 2);
+
       // dump objects in text form, for debugging
-      return h("pre", {}, JSON.stringify(node, replacer, 2));
+      return h("pre", {}, nodeStr);
+    }
   }
 }
 
