@@ -18,7 +18,7 @@ let callbacks = [];
 
 // re-render all mounted apps
 // triggered automatically by element event handlers and search param changes
-// need to call manually to render changes from 'setInterval', 'fetch', etc
+// needs to call manually to render changes from 'setInterval', 'fetch', etc
 export async function refresh() {
   for (const mount of mounts) {
     // used maintain focus after render when the currently focused element has an id
