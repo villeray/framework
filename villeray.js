@@ -2,14 +2,14 @@
 const mounts = [];
 
 // mount an app that replaces the element matching selector
-export async function mount(selector, app) {
+export function mount(selector, app) {
   const elem = document.body.querySelector(selector);
 
   if (elem === null) {
     console.log(new Error(`no match for '${selector}' in document body`));
   } else {
     mounts.push({ elem, app });
-    await refresh();
+    refresh();
   }
 }
 
@@ -19,18 +19,18 @@ let callbacks = [];
 // re-render all mounted apps
 // triggered automatically by element event handlers and search param changes
 // needs to call manually to render changes from 'setInterval', 'fetch', etc
-export async function refresh() {
+export function refresh() {
   for (const mount of mounts) {
     // used maintain focus after render when the currently focused element has an id
     const activeId = mount.elem.activeElement?.id ?? "";
 
-    const vnode = await transform(mount.app());
+    const vnode = transform(mount.app());
     // could return the same element, or a new one
-    mount.elem = await render(mount.elem, vnode);
+    mount.elem = render(mount.elem, vnode);
 
     restoreActive(mount.elem, activeId);
 
-    await Promise.all(callbacks.map((cb) => cb()));
+    callbacks.forEach((cb) => cb());
     callbacks = [];
   }
 }
@@ -92,7 +92,6 @@ class VNode {
 function queueCreate(elem) {
   // text elements don't have vnodeAttrs
   if (elem.vnodeAttrs?.aftercreate) {
-    // callback handler might return promise, gets awaited when evaluated
     callbacks.push(() => elem.vnodeAttrs.aftercreate(elem));
   }
 }
@@ -100,7 +99,6 @@ function queueCreate(elem) {
 function queueRemove(elem) {
   // text elements don't have vnodeAttrs
   if (elem.vnodeAttrs?.afterremove) {
-    // callback handler might return promise, gets awaited when evaluated
     callbacks.push(() => elem.vnodeAttrs.afterremove(elem));
   }
 }
@@ -108,7 +106,6 @@ function queueRemove(elem) {
 function queueUpdate(elem) {
   // text elements don't have vnodeAttrs
   if (elem.vnodeAttrs?.afterupdate) {
-    // callback handler might return promise, gets awaited when evaluated
     callbacks.push(() => elem.vnodeAttrs.afterupdate(elem));
   }
 }
@@ -139,7 +136,7 @@ function replacer(key, val) {
   return val;
 }
 
-async function transform(node) {
+function transform(node) {
   // return value is either a string or a VNode object
   switch (node?.constructor) {
     case VNode:
@@ -153,9 +150,6 @@ async function transform(node) {
       // to facilitate conditional rendering
       // https://reactjs.org/docs/jsx-in-depth.html#booleans-null-and-undefined-are-ignored
       return "";
-    case Promise:
-      // resolve promises
-      return transform(await node);
     default: {
       // use custom toString method if one is defined
       const nodeStr =
@@ -172,7 +166,7 @@ async function transform(node) {
 // update elem to match vnode if it has a compatible type
 // otherwise replace it with a new elem
 // vnode is either a string of a VNode object
-async function render(elem, vnode) {
+function render(elem, vnode) {
   if (typeof vnode === "string") {
     if (elem.nodeType === Node.TEXT_NODE) {
       // update existing text elem
@@ -183,20 +177,20 @@ async function render(elem, vnode) {
     }
 
     // replace elem with new text elem
-    return replace(elem, await createElem(vnode));
+    return replace(elem, createElem(vnode));
   }
 
   // elem.tagName is always uppercase
   // vnode.tag is case insensitive
   if (vnode.tag.toUpperCase() === elem.tagName) {
     // update existing elem
-    await setupElem(elem, vnode);
+    setupElem(elem, vnode);
     queueUpdate(elem);
     return elem;
   }
 
   // replace elem with new elem
-  return replace(elem, await createElem(vnode));
+  return replace(elem, createElem(vnode));
 }
 
 function replace(elem, newElem) {
@@ -205,7 +199,7 @@ function replace(elem, newElem) {
   return newElem;
 }
 
-async function setAttributes(elem, attrs) {
+function setAttributes(elem, attrs) {
   // elem won't have oldAttrs on first render
   const oldAttrs = elem.vnodeAttrs ?? {};
 
@@ -224,9 +218,9 @@ async function setAttributes(elem, attrs) {
 
       if (oldAttrs[attr] !== value) {
         // wrapper which calls given event handler and refreshes
-        elem[attr] = async (...args) => {
-          await value(...args);
-          await refresh();
+        elem[attr] = (...args) => {
+          value(...args);
+          refresh();
         };
       }
     } else if (attr === "class") {
@@ -274,8 +268,8 @@ async function setAttributes(elem, attrs) {
   }
 }
 
-async function setChildren(elem, children) {
-  const transformed = await Promise.all(children.map(transform));
+function setChildren(elem, children) {
+  const transformed = children.map(transform);
 
   // tracking these as separate variables is much faster than
   // repeatedly querying the `length` property, not sure why
@@ -287,10 +281,10 @@ async function setChildren(elem, children) {
   for (let index = 0; index < numVNodes; index++) {
     if (index < numElems) {
       // render to existing child elem
-      await render(elem.childNodes[index], transformed[index]);
+      render(elem.childNodes[index], transformed[index]);
     } else {
       // make new child elem
-      elem.append(await createElem(transformed[index]));
+      elem.append(createElem(transformed[index]));
       numElems++;
     }
   }
@@ -305,15 +299,15 @@ async function setChildren(elem, children) {
 
 // vnode is a VNode object, setupElem is not called for string elements
 // since they have no attrs or children
-async function setupElem(elem, vnode) {
-  await setAttributes(elem, vnode.attrs);
-  await setChildren(elem, vnode.children);
+function setupElem(elem, vnode) {
+  setAttributes(elem, vnode.attrs);
+  setChildren(elem, vnode.children);
 }
 
 // tracks special case for making SVG descendant elements
 let inSVG = false;
 
-async function createElem(vnode) {
+function createElem(vnode) {
   if (typeof vnode === "string") {
     return document.createTextNode(vnode);
   }
@@ -325,7 +319,7 @@ async function createElem(vnode) {
     ? document.createElementNS("http://www.w3.org/2000/svg", vnode.tag)
     : document.createElement(vnode.tag);
 
-  await setupElem(elem, vnode);
+  setupElem(elem, vnode);
   queueCreate(elem);
 
   inSVG = wasInSVG;
@@ -354,7 +348,7 @@ function buildURL(path, params) {
 
 // set new search params using window.history.pushState and refresh
 // use addHistory = false for window.history.replaceState
-export async function setParams(params, addHistory = true) {
+export function setParams(params, addHistory = true) {
   const url = buildURL("", params);
 
   if (window.location.href !== url.href) {
@@ -363,7 +357,7 @@ export async function setParams(params, addHistory = true) {
       : window.history.replaceState({}, "", url);
   }
 
-  await refresh();
+  refresh();
 }
 
 function startWatchURL() {
@@ -371,11 +365,11 @@ function startWatchURL() {
 
   // polls for changes to window url
   // calls redraw on back navigation
-  async function doWatch() {
+  function doWatch() {
     const url = window.location.href;
     if (url !== oldURL) {
       oldURL = url;
-      await refresh();
+      refresh();
     }
     requestAnimationFrame(doWatch);
   }
