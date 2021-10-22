@@ -78,7 +78,7 @@ class VNode {
         // don't overwrite existing click handler if there is one
         this.attrs.onclick ??= (e) => {
           // don't hijack ctrl-click and such for links
-          // ctrl-click etc will still work since href is set
+          // ctrl-click for new tab will still work since href is set
           if (!(e.ctrlKey || e.shiftKey || e.metaKey)) {
             setParams(attrs.params ?? {});
             e.preventDefault();
@@ -121,11 +121,13 @@ export function h(tag, attrs, ...children) {
     console.log(new Error(message), tag);
     return `(${message})`;
   }
+
   if (attrs?.constructor !== Object) {
     const message = "error: 'attrs' must be an object";
     console.log(new Error(message), tag);
     return `(${message})`;
   }
+
   return new VNode(tag, attrs, children);
 }
 
@@ -138,7 +140,7 @@ function replacer(key, val) {
 }
 
 async function transform(node) {
-  // returns value is either a string or a VNode object
+  // return value is either a string or a VNode object
   switch (node?.constructor) {
     case VNode:
       return node;
