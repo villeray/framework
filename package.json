@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "A simple javascript framework for uncomplicated web-apps",
   "main": "villeray.js",
+  "type": "module",
   "scripts": {
     "fmt": "prettier villeray.js --write",
     "minify": "esbuild villeray.js --outfile=villeray.min.js --minify --target=es2020",
