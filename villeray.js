@@ -119,7 +119,7 @@ export function h(tag, attrs, ...children) {
     console.log(new Error(message), tag);
     return `(${message})`;
   }
-  if (typeof attrs !== "object") {
+  if (attrs?.constructor !== Object) {
     const message = "error: 'attrs' must be an object";
     console.log(new Error(message), tag);
     return `(${message})`;
@@ -222,7 +222,7 @@ async function setAttributes(elem, attrs) {
       // put string in list, or keep list
       const classNames = [attr].flat();
       elem.className = classNames.join(" ");
-    } else if (attr === "style" && typeof value === "object") {
+    } else if (attr === "style" && value?.constructor !== Object) {
       // makes it possible to specify element styles as an object
       // instead of a string
 
