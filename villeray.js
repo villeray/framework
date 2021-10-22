@@ -202,7 +202,7 @@ async function setAttributes(elem, attrs) {
   elem.vnodeAttrs = attrs;
 
   for (const [attr, value] of Object.entries(attrs)) {
-    if (attr.startsWith("on") && oldAttrs[attr] !== value) {
+    if (attr.startsWith("on")) {
       // don't transform lifecycle hooks
       switch (attr) {
         case "aftercreate":
@@ -211,11 +211,17 @@ async function setAttributes(elem, attrs) {
           continue;
       }
 
-      // wrapper which calls given event handler and refreshes
-      elem[attr] = async (...args) => {
-        await value(...args);
-        await refresh();
-      };
+      if (oldAttrs[attr] !== value) {
+        // wrapper which calls given event handler and refreshes
+        elem[attr] = async (...args) => {
+          await value(...args);
+          await refresh();
+        };
+      }
+    } else if (attr === "class") {
+      // put string in list, or keep list
+      const classNames = [attr].flat();
+      elem.className = classNames.join(" ");
     } else if (attr === "style" && typeof value === "object") {
       // makes it possible to specify element styles as an object
       // instead of a string
@@ -231,7 +237,8 @@ async function setAttributes(elem, attrs) {
 
       // remove old styles
       for (const property of Object.values(oldStyles)) {
-        if (!Object.hasOwnProperty.call(value, property)) {
+        // '==' matches null or undefined
+        if (value[property] == undefined) {
           elem.style.removeProperty(property);
         }
       }
@@ -246,9 +253,13 @@ async function setAttributes(elem, attrs) {
   // remove attrs set by old vnode that are no longer used
   // Object.keys(elem) should only return attrs that were previously set
   for (const oldAttr of Object.keys(oldAttrs)) {
-    if (!Object.hasOwnProperty.call(attrs, oldAttr)) {
+    if (attrs[oldAttr] == undefined) {
       delete elem[oldAttr];
     }
+  }
+
+  if (attrs["class"] == null) {
+    elem.className = "";
   }
 }
 
