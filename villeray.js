@@ -3,6 +3,11 @@ const mounts = [];
 
 // mount an app that replaces the element matching selector
 export function mount(selector, app) {
+  if (mounts.length === 0) {
+    // only start once, at first mount
+    startWatchURL();
+  }
+
   const elem = document.body.querySelector(selector);
 
   if (elem === null) {
@@ -377,5 +382,3 @@ function startWatchURL() {
   // no await needed
   doWatch();
 }
-
-startWatchURL();
