@@ -1,14 +1,14 @@
 {
   "name": "villeray",
   "version": "1.0.0",
-  "description": "A simple javascript framework for uncomplicated web-apps",
+  "description": "A javascript framework for client and server-side rendered web-apps",
   "main": "villeray.js",
   "type": "module",
   "scripts": {
-    "fmt": "prettier villeray.js --write",
-    "minify": "esbuild villeray.js --outfile=villeray.min.js --minify --target=es2020",
-    "lint": "eslint villeray.js",
-    "build": "npm run fmt && npm run lint && npm run minify"
+    "fmt": "prettier src/*.js --write",
+    "bundle": "esbuild src/villeray.js --outfile=villeray.min.js --bundle --format=esm --minify --target=es6",
+    "lint": "eslint src/*.js",
+    "build": "npm run fmt && npm run lint && npm run bundle"
   },
   "repository": {
     "type": "git",
