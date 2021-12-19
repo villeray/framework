@@ -1,42 +1,29 @@
 {
   "name": "villeray",
-  "version": "1.0.0",
-  "description": "A javascript framework for client and server-side rendered web-apps",
-  "main": "villeray.js",
+  "description": "Javascript functions for dynamic page elements",
+  "main": "src/villeray.js",
   "type": "module",
   "scripts": {
-    "fmt": "prettier src/*.js --write",
+    "fmt": "prettier src --write",
     "bundle": "esbuild src/villeray.js --outfile=villeray.min.js --bundle --format=esm --minify --target=es6",
-    "lint": "eslint src/*.js",
+    "lint": "eslint src",
     "build": "npm run fmt && npm run lint && npm run bundle"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/villeray/framework.git"
-  },
-  "keywords": ["framework", "declarative", "webapps"],
   "author": "Avery Nortonsmith",
   "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/villeray/framework/issues"
-  },
-  "homepage": "https://github.com/villeray/framework#readme",
   "devDependencies": {
     "esbuild": "^0.13.8",
     "eslint": "^8.0.1",
-    "prettier": "^2.4.1",
-    "terser": "^5.9.0"
+    "prettier": "^2.4.1"
   },
   "eslintConfig": {
     "env": {
       "browser": true,
       "es2020": true
     },
-    "extends": "eslint:recommended",
     "parserOptions": {
       "ecmaVersion": 2021,
       "sourceType": "module"
-    },
-    "rules": {}
+    }
   }
 }
