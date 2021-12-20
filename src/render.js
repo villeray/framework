@@ -107,7 +107,11 @@ function createElem(vnode) {
   const { tag, attrs, children } = vnode;
 
   const wasInSVG = inSVG;
-  inSVG ||= tag.toUpperCase() === "SVG";
+
+  // https://caniuse.com/?search=%7C%7C%3D
+  // inSVG ||= tag.toUpperCase() === "SVG";
+
+  inSVG = inSVG || tag.toUpperCase() === "SVG";
 
   const elem = inSVG
     ? document.createElementNS("http://www.w3.org/2000/svg", tag)

@@ -5,14 +5,12 @@
   "type": "module",
   "scripts": {
     "fmt": "prettier src --write",
-    "bundle": "esbuild src/villeray.js --outfile=bundled.js --bundle --format=esm --target=es6",
     "lint": "eslint src",
-    "build": "npm run fmt && npm run lint && npm run bundle"
+    "check": "npm run fmt && npm run lint"
   },
   "author": "Avery Nortonsmith",
   "license": "ISC",
   "devDependencies": {
-    "esbuild": "^0.13.8",
     "eslint": "^8.0.1",
     "prettier": "^2.4.1"
   },
