@@ -23,10 +23,12 @@ export function render(elem, children) {
     elem.append(createElem(transformed[index]));
   }
 
+  const oldNodes = [...elem.childNodes];
+
   // remove unused child elems
   for (let index = numOverlap; index < numElems; index++) {
     // remove the next trailing element
-    elem.childNodes[index].remove();
+    oldNodes[index].remove();
   }
 }
 
