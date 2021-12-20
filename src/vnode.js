@@ -6,15 +6,7 @@ export class VNode {
   }
 
   static debug(value) {
-    let valueStr;
-    if (value instanceof Function) {
-      valueStr = showFunction(value);
-    } else if (value.toString !== Object.prototype.toString) {
-      valueStr = value.toString();
-    } else {
-      valueStr = JSON.stringify(value, replacer, 2);
-    }
-    return new VNode("pre", {}, valueStr);
+    return new VNode("pre", {}, dump(value));
   }
 }
 
@@ -36,14 +28,14 @@ export function v(tag, attrs, ...children) {
   return new VNode(tag, attrs, children);
 }
 
-function replacer(key, val) {
-  if (val instanceof Function) {
-    return showFunction(val);
+function dump(value) {
+  if (value instanceof Function) {
+    return `[function ${value.name}]`;
   }
 
-  return val;
-}
+  if (value.toString !== Object.prototype.toString) {
+    return value.toString();
+  }
 
-function showFunction(func) {
-  return `[function ${func.name}]`;
+  return JSON.stringify(value, (key, val) => dump(val), 2);
 }

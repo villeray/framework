@@ -10,11 +10,8 @@ function showStyle([property, value]) {
 }
 
 export function setStyles(attrs) {
+  // convert object of property / style definitions to a style string
   if (attrs.style instanceof Object) {
-    // convert object of property -> style definitions to a style string
-    const styles = Object.entries(attrs.style).map(showStyle);
-    return { ...attrs, style: styles.join(" ") };
+    attrs.style = Object.entries(attrs.style).map(showStyle).join(" ");
   }
-
-  return attrs;
 }

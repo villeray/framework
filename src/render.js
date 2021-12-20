@@ -1,7 +1,4 @@
-import { queueCreate, queueRemove, queueUpdate } from "./callbacks.js";
 import { setClass } from "./class.js";
-import { refresh } from "./refresh.js";
-import { route, routeAttrs } from "./route.js";
 import { setStyles } from "./style.js";
 import { transform } from "./transform.js";
 
@@ -27,10 +24,9 @@ export function render(elem, children) {
   }
 
   // remove unused child elems
-  for (let index = numVNodes; index < numOverlap; index++) {
+  for (let index = numOverlap; index < numElems; index++) {
     // remove the next trailing element
-    elem.removeChild(elem.children[numOverlap]);
-    queueRemove(elem);
+    elem.childNodes[index].remove();
   }
 }
 
@@ -50,12 +46,6 @@ function renderChild(elem, vnode) {
 
     // replace elem with new text elem
     elem.replaceWith(createElem(vnode));
-    queueRemove(elem);
-    return;
-  }
-
-  if (vnode.tag === "route") {
-    renderRoute(elem, vnode);
     return;
   }
 
@@ -66,64 +56,29 @@ function renderChild(elem, vnode) {
     // update existing elem
     render(elem, vnode.children);
     setAttributes(elem, vnode.attrs);
-    queueUpdate(elem);
     return;
   }
 
   // replace elem with new elem
   elem.replaceWith(createElem(vnode));
-  queueRemove(elem);
-}
-
-function renderRoute(elem, { attrs, children }) {
-  function onclick(e) {
-    // don't hijack ctrl-click and such for links
-    // ctrl-click for new tab will still work since href is set
-    if (!(e.ctrlKey || e.shiftKey || e.metaKey)) {
-      route(attrs.path ?? "", attrs.params ?? {});
-      e.preventDefault();
-    }
-  }
-
-  const newAttrs = {
-    ...routeAttrs(attrs),
-    onclick,
-  };
-
-  renderChild(elem, {
-    tag: "a",
-    attrs: newAttrs,
-    children,
-  });
 }
 
 function setAttributes(elem, attrs) {
   // elem won't have oldAttrs on first render
   const oldAttrs = elem.vnodeAttrs ?? {};
 
-  attrs = setStyles(attrs);
-  attrs = setClass(attrs);
+  // don't mutate original 'attrs' object
+  attrs = { ...attrs };
+  setStyles(attrs);
+  setClass(attrs);
 
   // store vnode attrs for future setAttributes diffs
   // some attributes like 'checked' don't appear in
   // elem.attributes, so we have to keep track separately
   elem.vnodeAttrs = attrs;
 
-  // don't transform lifecycle handlers
-  const entries = Object.entries(attrs).filter(shouldSetAttribute);
-
-  for (const [attr, value] of entries) {
-    if (attr.startsWith("on")) {
-      // check if inner handler provided is the same as the one previously
-      // given to avoid recreating wrapper function is possible
-      if (oldAttrs[attr] !== value) {
-        // wrapper which calls given event handler and refreshes
-        elem[attr] = (...args) => {
-          value(...args);
-          refresh();
-        };
-      }
-    } else if (elem[attr] !== value) {
+  for (const [attr, value] of Object.entries(attrs)) {
+    if (elem[attr] !== value) {
       // check against elem property directly, not oldAttrs, in case
       // the property value got converted to some other type
       // (for example, a number converted to a string 'value' property)
@@ -132,24 +87,11 @@ function setAttributes(elem, attrs) {
   }
 
   // remove attrs set by old vnode that are no longer used
-  // Object.keys(elem) should only return attrs that were previously set
   for (const oldAttr of Object.keys(oldAttrs)) {
     if (attrs[oldAttr] == undefined) {
       delete elem[oldAttr];
     }
   }
-}
-
-function shouldSetAttribute(entry) {
-  const attr = entry[0];
-  switch (attr) {
-    case "aftercreate":
-    case "afterupdate":
-    case "afterremove":
-      return false;
-  }
-
-  return true;
 }
 
 // tracks special case for making SVG descendant elements
@@ -171,7 +113,6 @@ function createElem(vnode) {
 
   render(elem, children);
   setAttributes(elem, attrs);
-  queueCreate(elem);
 
   inSVG = wasInSVG;
   return elem;

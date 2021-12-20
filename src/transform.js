@@ -1,7 +1,9 @@
 import { VNode } from "./vnode.js";
 
 export function transform(app) {
-  return [app].flat(Infinity).map(transformChild);
+  return app != null && typeof app[Symbol.iterator] === "function"
+    ? [...app].map(transformChild)
+    : [app];
 }
 
 function transformChild(node) {
